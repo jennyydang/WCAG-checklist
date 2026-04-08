@@ -119,10 +119,32 @@ const checklists: Record<RoleKey, { section: string; items: string[] }[]> = {
   ],
 };
 
+const roleAccent: Record<RoleKey, string> = {
+  Designer: "text-violet-400",
+  "FE Dev": "text-cyan-400",
+  CIS: "text-emerald-400",
+};
+
+const roleBorder: Record<RoleKey, string> = {
+  Designer: "border-violet-500",
+  "FE Dev": "border-cyan-500",
+  CIS: "border-emerald-500",
+};
+
+const roleCheckbox: Record<RoleKey, string> = {
+  Designer: "accent-violet-500",
+  "FE Dev": "accent-cyan-500",
+  CIS: "accent-emerald-500",
+};
+
 export default function Home() {
+  // "home" | "checklist"
+  const [view, setView] = useState<"home" | "checklist">("home");
+  const [visible, setVisible] = useState(true);
   const [selected, setSelected] = useState<RoleKey | null>(null);
 
   const buttonRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+  const backRef = useRef<HTMLButtonElement | null>(null);
 
   const roles: {
     label: RoleKey;
@@ -209,7 +231,15 @@ export default function Home() {
     },
   ];
 
-  // Attach addEventListener("click", handler) to each button via ref
+  function fadeTransition(next: () => void) {
+    setVisible(false);
+    setTimeout(() => {
+      next();
+      setVisible(true);
+    }, 300);
+  }
+
+  // Attach addEventListener("click", handler) to each role button
   useEffect(() => {
     const cleanups: (() => void)[] = [];
 
@@ -218,7 +248,10 @@ export default function Home() {
       if (!el) return;
 
       function handleCardClick() {
-        setSelected((prev) => (prev === label ? null : label));
+        fadeTransition(() => {
+          setSelected(label);
+          setView("checklist");
+        });
       }
 
       el.addEventListener("click", handleCardClick);
@@ -229,112 +262,133 @@ export default function Home() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Attach addEventListener("click", handler) to the back button
+  useEffect(() => {
+    const el = backRef.current;
+    if (!el) return;
+
+    function handleBackClick() {
+      fadeTransition(() => {
+        setView("home");
+        setSelected(null);
+      });
+    }
+
+    el.addEventListener("click", handleBackClick);
+    return () => el.removeEventListener("click", handleBackClick);
+  });
+
   return (
     <main className="flex flex-col items-center justify-center min-h-screen bg-gray-950 px-6 py-12">
-      <h1 className="text-3xl font-bold text-white mb-2 tracking-tight">
-        Select Your Role
-      </h1>
-      <p className="text-gray-400 mb-12 text-sm">
-        Choose the role that best describes you
-      </p>
-
-      <div className="flex flex-col sm:flex-row items-start gap-6 w-full max-w-5xl">
-        {/* Left column: role buttons */}
-        <div
-          className={`flex flex-col gap-4 transition-all duration-400 ${
-            selected ? "sm:w-40 shrink-0" : "sm:flex-row sm:w-auto"
-          }`}
-        >
-          {roles.map(({ label, description, icon, accent, ring, hover }) => {
-            const isSelected = selected === label;
-            const isMinimized = selected !== null && !isSelected;
-
-            return (
-              <button
-                key={label}
-                ref={(el) => {
-                  buttonRefs.current[label] = el;
-                }}
-                type="button"
-                aria-pressed={isSelected}
-                className={`
-                  group flex items-center gap-3 rounded-2xl
-                  bg-gradient-to-br ${accent}
-                  text-white font-semibold shadow-lg
-                  transition-all duration-300
-                  focus-visible:outline-none focus-visible:ring-4 ${ring} focus-visible:ring-offset-2 focus-visible:ring-offset-gray-950
-                  ${
-                    isMinimized
-                      ? "px-3 py-3 opacity-60 scale-90 hover:opacity-80"
-                      : isSelected
-                      ? "px-4 py-4 w-full"
-                      : `flex-col px-8 py-8 ${hover} hover:scale-105 hover:shadow-2xl active:scale-95 min-w-[9rem]`
-                  }
-                `}
-              >
-                <span
-                  className={`transition-all duration-300 ${
-                    isMinimized ? "w-6 h-6" : "w-10 h-10"
-                  } flex items-center justify-center shrink-0`}
-                >
-                  {icon}
-                </span>
-                {!isMinimized && (
-                  <span
-                    className={`flex gap-1 ${
-                      isSelected ? "flex-row items-center" : "flex-col items-center"
-                    }`}
-                  >
-                    <span className="text-lg leading-tight">{label}</span>
-                    {!isSelected && (
-                      <span className="text-xs font-normal opacity-80">
-                        {description}
-                      </span>
-                    )}
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Right column: checklist panel */}
-        {selected && (
-          <div className="flex-1 bg-gray-900 rounded-2xl p-6 shadow-xl animate-in fade-in slide-in-from-right-4 duration-300">
-            <h2 className="text-xl font-bold text-white mb-1">
-              {selected} — WCAG 2.2 AAA Checklist
-            </h2>
-            <p className="text-gray-400 text-xs mb-6">
-              Accessibility criteria relevant to your role
+      <div
+        style={{ transition: "opacity 300ms ease" }}
+        className={visible ? "opacity-100" : "opacity-0"}
+      >
+        {view === "home" ? (
+          <>
+            <h1 className="text-3xl font-bold text-white mb-2 tracking-tight text-center">
+              Select Your Role
+            </h1>
+            <p className="text-gray-400 mb-12 text-sm text-center">
+              Choose the role that best describes you
             </p>
 
-            <div className="space-y-6">
-              {checklists[selected].map(({ section, items }) => (
-                <div key={section}>
-                  <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wide mb-3">
-                    {section}
-                  </h3>
-                  <ul className="space-y-2">
-                    {items.map((item) => (
-                      <li key={item} className="flex items-start gap-3">
-                        <input
-                          type="checkbox"
-                          id={item}
-                          className="mt-0.5 h-4 w-4 shrink-0 rounded border-gray-600 bg-gray-800 accent-violet-500 cursor-pointer"
-                        />
-                        <label
-                          htmlFor={item}
-                          className="text-sm text-gray-200 leading-snug cursor-pointer select-none"
-                        >
-                          {item}
-                        </label>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
+            <div className="flex flex-col sm:flex-row gap-6 justify-center">
+              {roles.map(({ label, description, icon, accent, ring, hover }) => (
+                <button
+                  key={label}
+                  ref={(el) => {
+                    buttonRefs.current[label] = el;
+                  }}
+                  type="button"
+                  className={`
+                    group flex flex-col items-center gap-4 px-8 py-8 rounded-2xl
+                    bg-gradient-to-br ${accent} ${hover}
+                    text-white font-semibold shadow-lg
+                    transition-all duration-200
+                    focus-visible:outline-none focus-visible:ring-4 ${ring} focus-visible:ring-offset-2 focus-visible:ring-offset-gray-950
+                    active:scale-95 hover:scale-105 hover:shadow-2xl
+                    min-w-[9rem]
+                  `}
+                >
+                  <span className="transition-transform duration-200 group-hover:-translate-y-1">
+                    {icon}
+                  </span>
+                  <span className="flex flex-col items-center gap-1">
+                    <span className="text-lg leading-tight">{label}</span>
+                    <span className="text-xs font-normal opacity-80">{description}</span>
+                  </span>
+                </button>
               ))}
             </div>
-          </div>
+          </>
+        ) : (
+          selected && (
+            <div className="w-full max-w-2xl mx-auto">
+              {/* Back button */}
+              <button
+                ref={(el) => {
+                  backRef.current = el;
+                }}
+                type="button"
+                className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors mb-8 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 rounded"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="w-4 h-4"
+                  aria-hidden="true"
+                >
+                  <polyline points="15 18 9 12 15 6" />
+                </svg>
+                Back to roles
+              </button>
+
+              {/* Checklist header */}
+              <h1 className={`text-4xl font-bold mb-1 ${roleAccent[selected]}`}>
+                {selected}
+              </h1>
+              <p className="text-gray-400 text-sm mb-8">
+                WCAG 2.2 AAA accessibility checklist
+              </p>
+
+              {/* Checklist sections */}
+              <div className="space-y-8">
+                {checklists[selected].map(({ section, items }) => (
+                  <div
+                    key={section}
+                    className={`border-l-2 ${roleBorder[selected]} pl-5`}
+                  >
+                    <h2 className="text-sm font-semibold text-gray-300 uppercase tracking-widest mb-4">
+                      {section}
+                    </h2>
+                    <ul className="space-y-3">
+                      {items.map((item) => (
+                        <li key={item} className="flex items-start gap-3">
+                          <input
+                            type="checkbox"
+                            id={item}
+                            className={`mt-0.5 h-4 w-4 shrink-0 rounded border-gray-600 bg-gray-800 cursor-pointer ${roleCheckbox[selected]}`}
+                          />
+                          <label
+                            htmlFor={item}
+                            className="text-sm text-gray-200 leading-snug cursor-pointer select-none"
+                          >
+                            {item}
+                          </label>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )
         )}
       </div>
     </main>
