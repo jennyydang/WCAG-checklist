@@ -306,8 +306,7 @@ export default function Home() {
     });
 
     return () => cleanups.forEach((fn) => fn());
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [view]); // re-run when view changes so freshly mounted buttons get listeners
 
   // addEventListener on the back button (re-runs whenever ref target changes)
   useEffect(() => {
